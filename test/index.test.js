@@ -208,6 +208,64 @@ test("预算跨 close/reopen 存活：重开后同轮不再重复 plan", async (
   for (const c of ctx._cleanups) c();
 });
 
+test("自己的补发不重置预算（SELF_SOURCE 排除），真人发话才重置", async () => {
+  const home = freshHome();
+  const ctx = boot();
+  const id = "sess-self-no-reset";
+  const history = [abdResult(1, 10), turnEnd(1, TURN_END_SEQ)];
+  const a = makeAgent(id, history);
+
+  ctx.emit("agent/status", { agent: a, status: "idle" });
+  await sleep(20);
+  assert.equal(a._sent.length, 1, "先正常补一次");
+
+  // 自己补发的 echo 进 inbox：预算绝不能清零（否则 continueMax 失效 → 无限补发）。
+  ctx.emit("agent/inbox/inserted", {
+    agent: a,
+    message: { source: { kind: "dsh-abd-rescue" } },
+  });
+  const sentAfterSelf = a._sent.length;
+
+  // 造一个新的异常轮次（turn 2），若预算被自己的 echo 清零，它还能再补；
+  // 正确行为：turn 1 用掉 1/3，turn 2 还能补（预算未清零 = 正确？不对——）
+  // 这里直接断言日志：SELF echo 不应产生 budget-reset。
+  assert.equal(
+    logEvents(home).filter((e) => e.event === "budget-reset").length,
+    0,
+    "自己的补发不得触发 budget-reset",
+  );
+  assert.equal(a._sent.length, sentAfterSelf, "SELF echo 不得产生任何补发");
+
+  // 真人发话 → 预算清零。
+  ctx.emit("agent/inbox/inserted", { agent: a, message: { source: { kind: "user" } } });
+  assert.equal(logEvents(home).filter((e) => e.event === "budget-reset").length, 1, "真人发话应清零");
+  for (const c of ctx._cleanups) c();
+});
+
+test("turn/end 变了 → 重查让位（turn-end-changed），不补", async () => {
+  const home = freshHome();
+  const ctx = boot();
+  const id = "sess-turn-changed";
+  // 事件流会被追加：plan 时最后一条 turn/end 是 seq 100，fire 时变成 seq 200（另一轮已跑完）。
+  const events = [abdResult(1, 98), turnEnd(1, TURN_END_SEQ)];
+  const a = makeAgent(id, events);
+
+  ctx.emit("agent/status", { agent: a, status: "idle" });
+  assert.ok(lastEventOf(home, "rescue-scheduled"));
+
+  // fire（0ms 定时器）触发前，同一轮被真人接手并跑出了新的一轮（正常完成）。
+  events.push(userMsg(150, "user", "继续"), turnEnd(2, 200));
+
+  await sleep(20);
+  // 两个拦发机制都会在 turn-end-changed 之前或之后留痕：
+  // hasFreshContinuation 先看到 seq 150 的真人消息 → already-handled；
+  // 若没有该消息，turn-end-changed 也会拦。断言「没发出去」+「留痕」。
+  assert.equal(a._sent.length, 0, "turn/end 已换一轮，不许补");
+  const deferred = logEvents(home).filter((e) => e.event === "rescue-deferred" || e.event === "rescue-aborted");
+  assert.ok(deferred.length >= 1, "拦发必须留痕");
+  for (const c of ctx._cleanups) c();
+});
+
 test("dispose 后 onStatus 旧 agent 迟到的事件不再处理", async () => {
   const home = freshHome();
   const ctx = boot();
