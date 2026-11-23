@@ -7,6 +7,7 @@
   "backoffMs": [1500, 5000, 15000],
   "continueText": "继续。刚才的工具调用被中断，请重试",
   "skipOwnedAgents": true,
+  "resumeDelayMs": 500,
   "notifyCommand": "",
   "logMaxBytes": 5242880
 }

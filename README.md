@@ -16,7 +16,7 @@ DeepSeek Harness (DSH) 救援插件：**轮次被异常结束（不是你按的�
 | 你按的停止（`aborted{kind:'user'}`） | 不碰 |
 | 工具被拦但轮次最终正常 completed | 不碰（调用已取消、模型已换路走完，补发反而怂恿重试） |
 | 上下文溢出码（CONTEXT_OVERFLOW 等） | 不碰（dsh-unstuck 走 overflow handoff 新建会话续跑，原会话不插消息） |
-| 会话被销毁（disposed） | 不碰 |
+| 会话在发送窗口内被关闭（agent disposed） | 挂起重发：等同一 session 重开（新 agent 注册）后 `resumeDelayMs` 重验补发；你重开后已自己发话则让位（2026-11-23 c5ee0860 漏发修复） |
 | 每会话补发满 `continueMax`（默认 3） | 停手 + 写日志通知 |
 | 真人发话，或桌面端「继续」按钮 / dsh-unstuck 接手 | 预算清零 |
 
@@ -56,13 +56,14 @@ Get-Content "$env:USERPROFILE\.dsh\abd-rescue\abd-rescue.jsonl" -Tail 20
 | `delayMs` | 1000 | 基础延迟（首发总延迟 = 它 + backoff 首档） |
 | `backoffMs` | [1500, 5000, 15000] | 第 1/2/3 次补发的额外退避 |
 | `skipOwnedAgents` | true | 子 agent 不插手 |
+| `resumeDelayMs` | 500 | 会话重开后挂起补发的重发延迟 |
 | `notifyCommand` | "" | 需要人知道的事额外执行的命令，`{msg}` 替换成正文 |
 | `logMaxBytes` | 5242880 | 日志轮转阈值 |
 
 ## 开发
 
 ```powershell
-node --test "test/*.test.js"   # 纯逻辑单测
+node --test "test/*.test.js"   # 核心单测 + 装配层集成测试（假 ctx 走真实事件链）
 node tools/replay.mjs          # 全量会话日志回归回放（断言式）
 ```
 
