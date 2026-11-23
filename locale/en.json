@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tool-call abort rescue",
+    "description": "When a turn ends abnormally (not because you pressed stop) and one of its tool calls was killed with 'tool call aborted before dispatch', sends a pointed 'continue' so the work is not stranded. Covers the gap where dsh-unstuck's question-pause guard aborts a turn and deliberately declines to continue it. Never continues user stops; max 3 per session with backoff."
+  }
+}

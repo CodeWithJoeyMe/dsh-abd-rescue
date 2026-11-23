@@ -1,0 +1,43 @@
+# dsh-abd-rescue bundle patch
+#
+# 轮次被异常结束 + 该轮里有工具调用被 ABORTED_BEFORE_DISPATCH 拦下
+# → 自动补一条指向性的「继续」。
+#
+# 专补 dsh-unstuck 的缺口：它的「问了不等」守卫自掐的轮次会被
+# isQuestionPauseAbort 排除在自动续跑之外（设计如此，把发言权还给用户），
+# 结果用户看到的是满屏红色「tool call aborted before dispatch」+ 手动发「继续」。
+# 2026-11-22 本机全量审计：现存会话 43/43 个 ABD 工具结果都是守卫自掐，
+# 所以本插件在这台机器上几乎只服务这一种来源。
+#
+# 这里写的 config 只是「初始值」：真正的调参请改
+#   <DSH_HOME>/abd-rescue/config.json
+# 那个文件优先级更高，改完重启 dsh 生效（不用改本文件、不用重装）。
+
+- insert:
+    - id: dsh-abd-rescue
+      name: 'dsh-abd-rescue'
+      config:
+        enabled: true
+        verbose: false
+
+        # 总开关
+        autoContinue: true
+        # 每个会话（预算窗口）最多补几次，用完停手并通知
+        continueMax: 3
+        # 基础延迟：让 turn/end 落盘。第一次发送 ≈ 1000 + 1500 = 2.5s，
+        # 故意比 dsh-unstuck 的首发 2.2s 略晚：两边都想续时，让 unstuck 先开口，
+        # 发送前重查发现它已经发过就自动让位（见 lib/index.js fireRescue 的注释）。
+        delayMs: 1000
+        # 第 1/2/3 次补发前的额外退避
+        backoffMs: [1500, 5000, 15000]
+        # 文案与 dsh-unstuck 的 toolAbortContinueText 保持一致
+        continueText: "继续。刚才的工具调用被中断，请重试"
+
+        # 子 agent（被托管的）默认不插手
+        skipOwnedAgents: true
+
+        # 通知命令，{msg} 会被替换成正文；留空则只写日志
+        notifyCommand: ""
+
+        # 日志超过这个大小就轮转成 .1
+        logMaxBytes: 5242880

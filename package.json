@@ -1,0 +1,50 @@
+{
+  "name": "dsh-abd-rescue",
+  "version": "0.1.0",
+  "description": "Rescue for DeepSeek Harness: when a turn ends abnormally (not by you) and one of its tool calls was killed with 'tool call aborted before dispatch', it sends a pointed 'continue' so the work is not left stranded. Covers the gap where dsh-unstuck's own question-pause guard aborts turns and deliberately declines to continue them.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": {
+      "default": "./lib/index.js"
+    },
+    "./package.json": "./package.json",
+    "./locale/*": "./locale/*"
+  },
+  "files": [
+    "lib",
+    "locale",
+    "tools",
+    "test",
+    "cordis.patch.yml",
+    "README.md",
+    "icon.svg",
+    "abd-rescue.config.example.json",
+    "install.ps1",
+    "uninstall.ps1"
+  ],
+  "icon": "icon.svg",
+  "scripts": {
+    "test": "node --test \"test/*.test.js\"",
+    "replay": "node tools/replay.mjs"
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "aborted-before-dispatch",
+    "auto-continue"
+  ],
+  "license": "MIT",
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1"
+  },
+  "engines": {
+    "node": ">=22.19.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    }
+  }
+}
