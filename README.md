@@ -1,5 +1,7 @@
 # dsh-abd-rescue
 
+[中文](./README.md) · [English](./README.en.md)
+
 DeepSeek Harness (DSH) 救援插件：**轮次被异常结束（不是你按的停止），且该轮里有工具调用被「tool call aborted before dispatch」(ABORTED_BEFORE_DISPATCH, ABD) 拦下 → 自动补一条指向性的「继续」**，让模型重新发起那个被拦下的调用。
 
 ## 为什么需要它
@@ -30,9 +32,12 @@ DeepSeek Harness (DSH) 救援插件：**轮次被异常结束（不是你按的�
 ## 安装
 
 ```powershell
-cd $env:USERPROFILE\.dsh\repos\dsh-abd-rescue
+git clone https://github.com/CodeWithJoeyMe/dsh-abd-rescue.git
+cd .\dsh-abd-rescue
 pwsh -File .\install.ps1          # 默认装进 desktop profile
 ```
+
+`install.ps1` 按 `package.json` 的 files 列表把插件复制进 `<DSH_HOME>\plugins\` 并登记进 profile，之后运行的是复制品——clone 目录装完可删，升级时重新 clone 再跑一遍即可（需要 pwsh 7+，git 在 PATH 里）。
 
 完全退出并重启 DeepSeek Harness 后生效。验证：
 
